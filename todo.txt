@@ -1,0 +1,14 @@
+
+Krok	Zmiana	Status	Wpływ	Nakład	Uwagi / co dalej
+1	Backtest z metrykami + test vs. random (C1-C2)	ZROBIONE	krytyczny	mały	Jest backtest Lotto i Mini, Monte Carlo, p-value, lift vs random i teoria hipergeometryczna.
+2	Gap analysis (A3) + decay exponencjalny (A2)	ZROBIONE	wysoki	mały	Jest gap score + decay w recency oraz ważenie statystyk okna przez decay (Lotto i Mini).
+3	Simulated Annealing (B1) + multi-start (B2)	CZESCIOWO	wysoki	mały	Jest multi-start/restarts w Mini; brak pełnego SA i brak spójnego multi-start w Lotto. Dodać SA + restarty dla obu gier.
+4	Analiza sum/spread/entropii (D2-D3)	CZESCIOWO	średni	średni	Jest suma/spread (kary klastrowe), brak jawnej entropii. Dodać cechę entropii rozkładu po bucketach.
+5	Trójki PMI (A1)	NIEZROBIONE	średni	średni	Obecnie jest PMI par. Dodać liczniki trójek i score triplet PMI z wygładzaniem.
+6	Gradient Boosting na cechach (E1)	NIEZROBIONE	wysoki	duży	Po wdrożeniu cech z pkt 3-5 zbudować model rankingowy i kalibrację walk-forward.
+7	LSTM/Transformer (E2)	NIEZROBIONE	średni	duży	Zostawić na koniec po stabilizacji feature engineering i benchmarku modelu GB.
+
+Priorytet kolejnych wdrozen (rekomendacja)
+8	Ujednolicić --decay-lambda dla Mini	NOWE	średni	mały	W Lotto jest CLI --decay-lambda, w Mini jeszcze brak opcji CLI do strojenia lambdy.
+9	SA + multi-start w Lotto i Mini	NOWE	wysoki	mały	Dodać temperature schedule, kryterium Metropolis i N restartów per K.
+10	Entropy + triplet PMI + backtest A/B	NOWE	wysoki	średni	Po wdrożeniu cech zrobić A/B vs baseline na tych samych seedach i raportować delta lift/p-value.

@@ -1,0 +1,11 @@
+# Sekrety
+lotto_key.txt
+
+# Dane historii losowan
+*historia*
+
+# Plik wynikowy/binarna aplikacja
+lotto
+
+# Artefakty kompilacji
+*.o
