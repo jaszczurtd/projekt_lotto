@@ -13,6 +13,7 @@
 //     zachowaniem `cmd_play`. Stanowi baseline.
 //   - C(7, 6, 5) — zweryfikowane minimum (6 bloków, gwarancja 5-z-6
 //     przy puli 7 liczb).
+//   - C(6, 5, 4) — minimum 5 bloków (gwarancja 4-z-5 przy puli 6 liczb).
 //   - C(6, 5, 5) — trywialny pełny system Mini.
 //
 // Kolejne optymalne pokrycia (np. C(9,6,3)=7, C(10,6,4)=20, C(12,6,4)=38,
@@ -42,6 +43,18 @@ static const int W_7_6_5[6][6] = {
     {0, 1, 2, 3, 4, 6}, // excludes 5
 };
 
+// C(6, 5, 4) — minimum = 5 bloków.
+// Bloki jako dopelnienia pojedynczych elementow 0..4.
+// Kazdy 4-podzbior to dopelnienie pary {x,y}; jest pokryty, gdy
+// przynajmniej jeden z {x,y} nalezy do zbioru wykluczonych {0..4}.
+static const int W_6_5_4[5][5] = {
+    {1, 2, 3, 4, 5}, // excludes 0
+    {0, 2, 3, 4, 5}, // excludes 1
+    {0, 1, 3, 4, 5}, // excludes 2
+    {0, 1, 2, 4, 5}, // excludes 3
+    {0, 1, 2, 3, 5}, // excludes 4
+};
+
 // Statyczny katalog (poza wheel'ami pełnymi generowanymi on-the-fly).
 // Uwaga: tablica `blocks` w typie `Wheel` jest duża (~16 KB).
 // Aby nie marnować RAM, przechowujemy tylko meta + wskaźnik na dane bloków
@@ -57,6 +70,7 @@ typedef struct {
 } CatalogEntry;
 
 static const CatalogEntry STATIC_CATALOG[] = {
+    {6, 5, 4, 5, (const int *)W_6_5_4, "manual", true},
     {7, 6, 5, 6, (const int *)W_7_6_5, "manual", true},
 };
 static const int STATIC_CATALOG_LEN =
