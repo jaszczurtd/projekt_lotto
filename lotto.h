@@ -26,6 +26,7 @@
 #include "network.h"
 #include "tools.h"
 #include "gui.h"
+#include "wheels.h"
 
 // Konfiguracja — ścieżki plików, limity, stałe gier
 #define HISTORY_FILE      "lotto_historia.txt"      // plik historii Lotto 6/49

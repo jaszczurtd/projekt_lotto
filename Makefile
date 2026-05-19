@@ -10,7 +10,7 @@ ifeq ($(GTK_AVAILABLE),yes)
 endif
 
 TARGET  = lotto
-SRC     = main.c lotto.c mini_lotto.c network.c tools.c gui.c
+SRC     = main.c lotto.c mini_lotto.c network.c tools.c gui.c wheels.c
 
 $(TARGET): $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)

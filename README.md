@@ -22,7 +22,24 @@ Projekt udostepnia:
   - gap score,
   - kary za wzorce "crowd" / klastrowanie,
 - decay eksponencjalny w statystykach okna (Lotto i Mini),
-- backtest walk-forward + Monte Carlo + p-value/lift.
+- backtest walk-forward + Monte Carlo + p-value/lift,
+- **systemy skrocone (wheels / covering designs)** z matematyczna gwarancja
+  trafienia t-z-k przy zalozeniu, ze wsrod Twojej puli V liczb znalazlo sie
+  >=t wylosowanych.
+
+### O wheels (waznie)
+
+Losowania lotto sa niezalezne i jednorodne (i.i.d.), wiec **zaden scoring nie
+zmienia prawdopodobienstwa trafienia gloryjnej szostki**. To, co wheels
+realnie poprawiaja, to **czestotliwosc malych wygranych na 1 PLN wydany**:
+zamiast losowac C(V,k) kuponow, kupujesz `n_blocks` < C(V,k) tak dobranych,
+zeby kazda t-elementowa podpula Twoich V liczb byla pokryta przez co najmniej
+jeden kupon. Jezeli wsrod Twoich V liczb znajdzie sie >=t wylosowanych, masz
+**pewne** >=1 trafienie t-z-k.
+
+Katalog wheels jest celowo maly i zawiera wylacznie zweryfikowane konstrukcje
+(self-test `wheels_self_test()` uruchamiany przy starcie). Pelne wheels
+(t = k) generowane sa w locie.
 
 ## Wymagania
 
@@ -170,18 +187,25 @@ Parametry analogiczne do Lotto, z zakresem `K=5..12`.
 
 ```bash
 ./lotto play [--max-system N] [--proposals N] [--seed N] [--decay-lambda X]
+./lotto play --wheel V/6/t
+./lotto play --list-wheels
 ```
 
 Parametry:
 - `--max-system N`: maksymalny system (`7..12`, domyslnie 10),
 - `--proposals N`: liczba propozycji na system,
 - `--seed N`: seed RNG,
-- `--decay-lambda X`: sila decay (`0..1`).
+- `--decay-lambda X`: sila decay (`0..1`),
+- `--wheel V/6/t`: skrocony system z gwarancja t-z-6 na puli V liczb
+  (pula dobierana wg scoringu, kuponow `n_blocks` < C(V,6)),
+- `--list-wheels`: lista dostepnych wheels dla k=6.
 
 ### 7. Play (Mini Lotto)
 
 ```bash
 ./lotto play-mini [--max-system N] [--proposals N] [--train N|--autotune|--no-autotune] [--seed N]
+./lotto play-mini --wheel V/5/t
+./lotto play-mini --list-wheels
 ```
 
 Parametry:
@@ -189,7 +213,9 @@ Parametry:
 - `--proposals N`: liczba propozycji na system,
 - `--train N`: reczne okno treningowe,
 - `--autotune` / `--no-autotune`,
-- `--seed N`.
+- `--seed N`,
+- `--wheel V/5/t`: skrocony system z gwarancja t-z-5 na puli V liczb,
+- `--list-wheels`: lista dostepnych wheels dla k=5.
 
 ## Przyklady
 
@@ -205,7 +231,26 @@ Parametry:
 
 # 4) Generowanie systemow Mini Lotto
 ./lotto play-mini --max-system 10 --proposals 3 --autotune --seed 123
+
+# 5) Lista dostepnych systemow skroconych (wheels) dla Lotto
+./lotto play --list-wheels
+
+# 6) Skrocony system Lotto: pula 7 liczb, gwarancja 5-z-6
+#    (6 kuponow zamiast C(7,6)=7 — minimalne pokrycie)
+./lotto play --wheel 7/6/5
 ```
+
+## GUI
+
+Zakladki (od lewej):
+- `Fetch-lotto`, `Fetch-mini` — pobieranie historii,
+- `Graj-lotto`, `Graj-mini-lotto` — generowanie systemow przez scoring,
+- `Wheel-lotto`, `Wheel-mini` — skrocone systemy z gwarancja t-z-k
+  (parametry: pula `V` i gwarancja `t`).
+
+Komendy `optimize` / `backtest` / `optimize-mini` / `backtest-mini` pozostaja
+dostepne wylacznie w CLI — z GUI zostaly usuniete, bo nie pomagaja w
+poprawie czestotliwosci malych wygranych.
 
 ## Uwagi
 

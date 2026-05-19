@@ -56,24 +56,17 @@ static GtkWidget *g_fetch_sleep, *g_fetch_maxreq, *g_fetch_max429;
 static GtkWidget *g_fetch_mini_from, *g_fetch_mini_to;
 static GtkWidget *g_fetch_mini_sleep, *g_fetch_mini_maxreq, *g_fetch_mini_max429;
 
-// Widgety zakładki Optimize (Lotto)
-static GtkWidget *g_opt_k, *g_opt_train;
-static GtkWidget *g_opt_mode;
-// Widgety zakładki Optimize (Mini Lotto)
-static GtkWidget *g_opt_mini_k, *g_opt_mini_train;
-static GtkWidget *g_opt_mini_mode;
-
-// Widgety zakładki Backtest (Lotto)
-static GtkWidget *g_bt_k, *g_bt_step, *g_bt_mc;
-// Widgety zakładki Backtest (Mini Lotto)
-static GtkWidget *g_bt_mini_k, *g_bt_mini_step, *g_bt_mini_mc;
-
 // Widgety zakładki Play (Lotto)
 static GtkWidget *g_play_max_system;
 static GtkWidget *g_play_proposals;
 // Widgety zakładki Play (Mini Lotto)
 static GtkWidget *g_play_mini_max_system;
 static GtkWidget *g_play_mini_proposals;
+
+// Widgety zakładki Wheel (Lotto): pula V liczb i gwarancja t-z-6
+static GtkWidget *g_wheel_v, *g_wheel_t;
+// Widgety zakładki Wheel (Mini Lotto): pula V liczb i gwarancja t-z-5
+static GtkWidget *g_wheel_mini_v, *g_wheel_mini_t;
 
 // Stan wątku roboczego
 static pthread_t g_worker_thread;
@@ -86,20 +79,16 @@ typedef struct { char *text; } AppendData;
 
 // Argumenty przekazywane do wątku roboczego
 typedef struct {
-    int mode; // 0=fetch-lotto, 1=fetch-mini, 2=optimize, 3=optimize-mini,
-              // 4=backtest, 5=backtest-mini, 6=play-lotto, 7=play-mini
+    int mode; // 0=fetch-lotto, 1=fetch-mini, 2=play-lotto, 3=play-mini,
+              // 4=wheel-lotto, 5=wheel-mini
     char from[32], to[32];
     int sleep_ms, max_req, max_429;
-    int opt_k, opt_train;
-    bool opt_full;
-    int opt_mini_k, opt_mini_train;
-    bool opt_mini_full;
-    int bt_k, bt_step, bt_mc;
-    int bt_mini_k, bt_mini_step, bt_mini_mc;
     int play_max_system;
     int play_proposals;
     int play_mini_max_system;
     int play_mini_proposals;
+    int wheel_v, wheel_t;
+    int wheel_mini_v, wheel_mini_t;
 } WorkerArgs;
 
 // Dodaje tekst do panelu Output z wątku roboczego (idle callback GTK)
@@ -262,45 +251,27 @@ static void *worker_func(void *arg) {
                         "--sleep-ms", sleep_str, "--max-req", maxreq_str, "--max-429", max429_str};
         rc = cmd_fetch_mini(10, args);
     } else if (wa->mode == 2) {
-        char k_str[16], train_str[16];
-        snprintf(k_str, sizeof(k_str), "%d", wa->opt_k);
-        snprintf(train_str, sizeof(train_str), "%d", wa->opt_train);
-        const char *mode_str = wa->opt_full ? "full" : "fast";
-        char *args[] = {"-k", k_str, "--train", train_str, "--mode", (char *)mode_str};
-        rc = cmd_optimize(6, args);
-    } else if (wa->mode == 3) {
-        char k_str[16], train_str[16];
-        snprintf(k_str, sizeof(k_str), "%d", wa->opt_mini_k);
-        snprintf(train_str, sizeof(train_str), "%d", wa->opt_mini_train);
-        const char *mode_str = wa->opt_mini_full ? "full" : "fast";
-        char *args[] = {"-k", k_str, "--train", train_str, "--mode", (char *)mode_str};
-        rc = cmd_optimize_mini(6, args);
-    } else if (wa->mode == 4) {
-        char k_str[16], step_str[16], mc_str[16];
-        snprintf(k_str, sizeof(k_str), "%d", wa->bt_k);
-        snprintf(step_str, sizeof(step_str), "%d", wa->bt_step);
-        snprintf(mc_str, sizeof(mc_str), "%d", wa->bt_mc);
-        char *args[] = {"-k", k_str, "--autotune", "--step", step_str, "--mc", mc_str};
-        rc = cmd_backtest(7, args);
-    } else if (wa->mode == 5) {
-        char k_str[16], step_str[16], mc_str[16];
-        snprintf(k_str, sizeof(k_str), "%d", wa->bt_mini_k);
-        snprintf(step_str, sizeof(step_str), "%d", wa->bt_mini_step);
-        snprintf(mc_str, sizeof(mc_str), "%d", wa->bt_mini_mc);
-        char *args[] = {"-k", k_str, "--autotune", "--step", step_str, "--mc", mc_str};
-        rc = cmd_backtest_mini(7, args);
-    } else if (wa->mode == 6) {
         char max_sys_str[16], prop_str[16];
         snprintf(max_sys_str, sizeof(max_sys_str), "%d", wa->play_max_system);
         snprintf(prop_str, sizeof(prop_str), "%d", wa->play_proposals);
         char *args[] = {"--max-system", max_sys_str, "--proposals", prop_str};
         rc = cmd_play(4, args);
-    } else {
+    } else if (wa->mode == 3) {
         char max_sys_str[16], prop_str[16];
         snprintf(max_sys_str, sizeof(max_sys_str), "%d", wa->play_mini_max_system);
         snprintf(prop_str, sizeof(prop_str), "%d", wa->play_mini_proposals);
         char *args[] = {"--max-system", max_sys_str, "--proposals", prop_str};
         rc = cmd_play_mini(4, args);
+    } else if (wa->mode == 4) {
+        char wheel_str[32];
+        snprintf(wheel_str, sizeof(wheel_str), "%d/6/%d", wa->wheel_v, wa->wheel_t);
+        char *args[] = {"--wheel", wheel_str};
+        rc = cmd_play(2, args);
+    } else {
+        char wheel_str[32];
+        snprintf(wheel_str, sizeof(wheel_str), "%d/5/%d", wa->wheel_mini_v, wa->wheel_mini_t);
+        char *args[] = {"--wheel", wheel_str};
+        rc = cmd_play_mini(2, args);
     }
 
     fflush(stdout);
@@ -374,27 +345,17 @@ static void on_run_clicked(GtkButton *btn, gpointer data) {
         wa->max_req = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_fetch_mini_maxreq));
         wa->max_429 = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_fetch_mini_max429));
     } else if (page == 2) {
-        wa->opt_k = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_opt_k));
-        wa->opt_train = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_opt_train));
-        wa->opt_full = (gtk_combo_box_get_active(GTK_COMBO_BOX(g_opt_mode)) == 1);
-    } else if (page == 3) {
-        wa->opt_mini_k = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_opt_mini_k));
-        wa->opt_mini_train = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_opt_mini_train));
-        wa->opt_mini_full = (gtk_combo_box_get_active(GTK_COMBO_BOX(g_opt_mini_mode)) == 1);
-    } else if (page == 4) {
-        wa->bt_k = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_bt_k));
-        wa->bt_step = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_bt_step));
-        wa->bt_mc = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_bt_mc));
-    } else if (page == 5) {
-        wa->bt_mini_k = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_bt_mini_k));
-        wa->bt_mini_step = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_bt_mini_step));
-        wa->bt_mini_mc = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_bt_mini_mc));
-    } else if (page == 6) {
         wa->play_max_system = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_play_max_system));
         wa->play_proposals = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_play_proposals));
-    } else {
+    } else if (page == 3) {
         wa->play_mini_max_system = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_play_mini_max_system));
         wa->play_mini_proposals = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_play_mini_proposals));
+    } else if (page == 4) {
+        wa->wheel_v = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_wheel_v));
+        wa->wheel_t = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_wheel_t));
+    } else {
+        wa->wheel_mini_v = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_wheel_mini_v));
+        wa->wheel_mini_t = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(g_wheel_mini_t));
     }
 
     if (pipe(g_pipe_fd) != 0) {
@@ -501,90 +462,52 @@ static GtkWidget *create_fetch_mini_tab(void) {
     return vbox;
 }
 
-static GtkWidget *create_optimize_tab(void) {
+static GtkWidget *create_wheel_tab(void) {
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
 
-    g_opt_mode = gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(g_opt_mode), "Fast");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(g_opt_mode), "Full (walk-forward)");
-    gtk_combo_box_set_active(GTK_COMBO_BOX(g_opt_mode), 0);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Mode:", g_opt_mode), FALSE, FALSE, 0);
+    GtkWidget *info = gtk_label_new(
+        "System skrocony (wheel) dla Lotto 6/49.\n"
+        "Wybierasz V liczb z puli, system generuje n kuponow tak,\n"
+        "by gwarantowac >=1 trafienie t-z-6, gdy w Twojej puli V\n"
+        "znajdzie sie >=t wylosowanych liczb.\n"
+        "Dostepnosc: --list-wheels w CLI. Pelny system: t = 6.");
+    gtk_label_set_xalign(GTK_LABEL(info), 0.0f);
+    gtk_label_set_line_wrap(GTK_LABEL(info), TRUE);
+    gtk_box_pack_start(GTK_BOX(vbox), info, FALSE, FALSE, 4);
 
-    g_opt_k = gtk_spin_button_new_with_range(6, 15, 1);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_opt_k), 8);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("K (system size):", g_opt_k), FALSE, FALSE, 0);
+    g_wheel_v = gtk_spin_button_new_with_range(6, 12, 1);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_wheel_v), 7);
+    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Pula V liczb:", g_wheel_v), FALSE, FALSE, 0);
 
-    g_opt_train = gtk_spin_button_new_with_range(50, 30000, 50);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_opt_train), 600);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Training window:", g_opt_train), FALSE, FALSE, 0);
+    g_wheel_t = gtk_spin_button_new_with_range(2, 6, 1);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_wheel_t), 5);
+    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Gwarancja t (z 6):", g_wheel_t), FALSE, FALSE, 0);
 
     return vbox;
 }
 
-static GtkWidget *create_optimize_mini_tab(void) {
+static GtkWidget *create_wheel_mini_tab(void) {
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
 
-    g_opt_mini_mode = gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(g_opt_mini_mode), "Fast");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(g_opt_mini_mode), "Full (autotune)");
-    gtk_combo_box_set_active(GTK_COMBO_BOX(g_opt_mini_mode), 0);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Mode:", g_opt_mini_mode), FALSE, FALSE, 0);
+    GtkWidget *info = gtk_label_new(
+        "System skrocony (wheel) dla Mini Lotto 5/42.\n"
+        "Wybierasz V liczb z puli, system generuje n kuponow tak,\n"
+        "by gwarantowac >=1 trafienie t-z-5, gdy w Twojej puli V\n"
+        "znajdzie sie >=t wylosowanych liczb.\n"
+        "Dostepnosc: --list-wheels w CLI. Pelny system: t = 5.");
+    gtk_label_set_xalign(GTK_LABEL(info), 0.0f);
+    gtk_label_set_line_wrap(GTK_LABEL(info), TRUE);
+    gtk_box_pack_start(GTK_BOX(vbox), info, FALSE, FALSE, 4);
 
-    g_opt_mini_k = gtk_spin_button_new_with_range(5, 12, 1);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_opt_mini_k), 7);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("K (system size):", g_opt_mini_k), FALSE, FALSE, 0);
+    g_wheel_mini_v = gtk_spin_button_new_with_range(5, 12, 1);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_wheel_mini_v), 6);
+    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Pula V liczb:", g_wheel_mini_v), FALSE, FALSE, 0);
 
-    g_opt_mini_train = gtk_spin_button_new_with_range(40, 30000, 20);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_opt_mini_train), 220);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Training window:", g_opt_mini_train), FALSE, FALSE, 0);
-
-    return vbox;
-}
-
-static GtkWidget *create_backtest_tab(void) {
-    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
-
-    GtkWidget *at_info = gtk_label_new("Okno treningowe dobierane automatycznie (autotune).");
-    gtk_label_set_xalign(GTK_LABEL(at_info), 0.0f);
-    gtk_box_pack_start(GTK_BOX(vbox), at_info, FALSE, FALSE, 4);
-
-    g_bt_k = gtk_spin_button_new_with_range(6, 15, 1);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_bt_k), 8);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("K (rozmiar systemu):", g_bt_k), FALSE, FALSE, 0);
-
-    g_bt_step = gtk_spin_button_new_with_range(1, 1000, 1);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_bt_step), 1);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Krok:", g_bt_step), FALSE, FALSE, 0);
-
-    g_bt_mc = gtk_spin_button_new_with_range(100, 50000, 100);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_bt_mc), 2000);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Symulacje MC:", g_bt_mc), FALSE, FALSE, 0);
-
-    return vbox;
-}
-
-static GtkWidget *create_backtest_mini_tab(void) {
-    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
-
-    GtkWidget *at_info = gtk_label_new("Okno treningowe mini dobierane automatycznie (autotune).");
-    gtk_label_set_xalign(GTK_LABEL(at_info), 0.0f);
-    gtk_box_pack_start(GTK_BOX(vbox), at_info, FALSE, FALSE, 4);
-
-    g_bt_mini_k = gtk_spin_button_new_with_range(5, 12, 1);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_bt_mini_k), 7);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("K (rozmiar systemu):", g_bt_mini_k), FALSE, FALSE, 0);
-
-    g_bt_mini_step = gtk_spin_button_new_with_range(1, 1000, 1);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_bt_mini_step), 1);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Krok:", g_bt_mini_step), FALSE, FALSE, 0);
-
-    g_bt_mini_mc = gtk_spin_button_new_with_range(100, 50000, 100);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_bt_mini_mc), 2000);
-    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Symulacje MC:", g_bt_mini_mc), FALSE, FALSE, 0);
+    g_wheel_mini_t = gtk_spin_button_new_with_range(2, 5, 1);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(g_wheel_mini_t), 5);
+    gtk_box_pack_start(GTK_BOX(vbox), make_label_entry_row("Gwarancja t (z 5):", g_wheel_mini_t), FALSE, FALSE, 0);
 
     return vbox;
 }
@@ -649,13 +572,11 @@ int cmd_gui(int argc, char **argv) {
     g_notebook = gtk_notebook_new();
     gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_fetch_tab(), gtk_label_new("Fetch-lotto"));
     gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_fetch_mini_tab(), gtk_label_new("Fetch-mini"));
-    gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_optimize_tab(), gtk_label_new("Optimize-lotto"));
-    gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_optimize_mini_tab(), gtk_label_new("Optimize-mini"));
-    gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_backtest_tab(), gtk_label_new("Backtest-lotto"));
-    gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_backtest_mini_tab(), gtk_label_new("Backtest-mini"));
     gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_play_tab(), gtk_label_new("> Graj-lotto"));
     gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_play_mini_tab(), gtk_label_new("> Graj-mini-lotto"));
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(g_notebook), 6);
+    gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_wheel_tab(), gtk_label_new("Wheel-lotto"));
+    gtk_notebook_append_page(GTK_NOTEBOOK(g_notebook), create_wheel_mini_tab(), gtk_label_new("Wheel-mini"));
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(g_notebook), 2);
     gtk_box_pack_start(GTK_BOX(vbox_main), g_notebook, FALSE, FALSE, 0);
 
     GtkWidget *hbox_run = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);

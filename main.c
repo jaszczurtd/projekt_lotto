@@ -17,14 +17,23 @@ static void usage_main(const char *prog) {
         "  %s backtest [-k K] [--train N|--autotune] [--step N] [--mc N] [--seed N]\n"
         "  %s backtest-mini [-k K] [--train N|--autotune] [--step N] [--mc N] [--seed N]\n"
         "  %s play     [--max-system N] [--proposals N] [--seed N]          (Lotto systems 7..N, default 10)\n"
+        "  %s play     --wheel V/6/t                                  (Lotto: skrocony system gwarantowany)\n"
+        "  %s play     --list-wheels                                  (Lotto: dostepne wheels)\n"
         "  %s play-mini [--max-system N] [--proposals N] [--train N|--autotune] [--seed N]\n"
+        "  %s play-mini --wheel V/5/t                                 (Mini: skrocony system gwarantowany)\n"
+        "  %s play-mini --list-wheels                                 (Mini: dostepne wheels)\n"
         "                                                              (Mini Lotto systems 5..N, default 9)\n\n"
         "API key is read from %s\n",
-        prog, prog, prog, prog, prog, prog, prog, prog, prog, KEY_FILE);
+        prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, KEY_FILE);
 }
 
 int main(int argc, char **argv) {
     srand(DEFAULT_RNG_SEED);
+
+    if (!wheels_self_test()) {
+        fprintf(stderr, "FATAL: wheels catalog self-test failed.\n");
+        return 1;
+    }
 
     if (argc < 2) {
         return cmd_gui(argc, argv);

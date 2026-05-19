@@ -625,6 +625,9 @@ int cmd_play_mini(int argc, char **argv) {
     int train_win = -1;
     bool autotune = true;
     unsigned int seed = DEFAULT_RNG_SEED;
+    int wheel_v = 0, wheel_t = 0;
+    bool wheel_mode = false;
+    bool list_wheels = false;
 
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--max-system") == 0 && i + 1 < argc)
@@ -643,6 +646,23 @@ int cmd_play_mini(int argc, char **argv) {
         }
         else if (strcmp(argv[i], "--autotune") == 0) autotune = true;
         else if (strcmp(argv[i], "--no-autotune") == 0) autotune = false;
+        else if (strcmp(argv[i], "--wheel") == 0 && i + 1 < argc) {
+            int v_, k_, t_;
+            if (sscanf(argv[++i], "%d/%d/%d", &v_, &k_, &t_) != 3 || k_ != MINI_DRAW_SIZE) {
+                fprintf(stderr, "Invalid --wheel value. Use V/%d/t (e.g. 6/%d/4).\n",
+                        MINI_DRAW_SIZE, MINI_DRAW_SIZE);
+                return 2;
+            }
+            wheel_v = v_; wheel_t = t_; wheel_mode = true;
+        }
+        else if (strcmp(argv[i], "--list-wheels") == 0) {
+            list_wheels = true;
+        }
+    }
+
+    if (list_wheels) {
+        wheel_list_available(MINI_DRAW_SIZE, stdout);
+        return 0;
     }
     if (proposals < 1) proposals = 1;
     if (proposals > 10) proposals = 10;
@@ -696,6 +716,96 @@ int cmd_play_mini(int argc, char **argv) {
     printf("║         MINI LOTTO (5/42) — SYSTEMY DO GRY                 ║\n");
     printf("╚══════════════════════════════════════════════════════════════╝\n\n");
     printf("Analiza: %d losowan, okno treningowe: %d\n\n", mini_draws_total, train_win);
+
+    // ---- Tryb wheel (skrocony system z gwarancja t-z-k) ----
+    if (wheel_mode) {
+        const Wheel *wh = wheel_find(wheel_v, MINI_DRAW_SIZE, wheel_t);
+        if (!wh) {
+            fprintf(stderr,
+                    "Wheel C(%d,%d,%d) niedostepny w katalogu. Uzyj --list-wheels.\n",
+                    wheel_v, MINI_DRAW_SIZE, wheel_t);
+            return 2;
+        }
+        if (wheel_v < MINI_DRAW_SIZE || wheel_v > 12) {
+            fprintf(stderr, "Wheel V poza zakresem (%d..12).\n", MINI_DRAW_SIZE);
+            return 2;
+        }
+
+        gui_set_status("Wybor puli %d liczb dla wheela C(%d,%d,%d)...",
+                       wheel_v, wheel_v, MINI_DRAW_SIZE, wheel_t);
+
+        // Wybor najlepszej puli wheel_v liczb (stratyfikowane probkowanie + mini_system_score).
+        int best_pool[16];
+        float best_pool_score = -1e30f;
+        int n_cand = 8000;
+        float bsz = (float)MINI_MAX_N / (float)wheel_v;
+
+        for (int c = 0; c < n_cand; c++) {
+            int T[16] = {0};
+            for (int b = 0; b < wheel_v; b++) {
+                int lo = (int)(b * bsz) + 1;
+                int hi = (int)((b + 1) * bsz);
+                if (b == wheel_v - 1) hi = MINI_MAX_N;
+                if (hi < lo) hi = lo;
+
+                float tw = 0.0f;
+                for (int n = lo; n <= hi; n++) tw += num_score[n] + 0.01f;
+                float r = ((float)rand() / (float)RAND_MAX) * tw;
+                float acc = 0.0f;
+                T[b] = lo;
+                for (int n = lo; n <= hi; n++) {
+                    acc += num_score[n] + 0.01f;
+                    if (acc >= r) { T[b] = n; break; }
+                }
+            }
+            qsort(T, (size_t)wheel_v, sizeof(int), cmp_int_asc);
+
+            bool unique = true;
+            for (int i = 1; i < wheel_v; i++)
+                if (T[i] == T[i - 1]) { unique = false; break; }
+            if (!unique) continue;
+
+            float sc = mini_system_score(T, wheel_v, num_score);
+            if (sc > best_pool_score) {
+                best_pool_score = sc;
+                memcpy(best_pool, T, sizeof(int) * (size_t)wheel_v);
+            }
+        }
+
+        // Aplikacja wheela: konwersja indeksow 0..v-1 na konkretne liczby.
+        int blocks_out[WHEEL_MAX_BLOCKS * WHEEL_MAX_BLOCK_SIZE];
+        int n_blocks = wheel_apply(wh, best_pool, blocks_out);
+        int total = n_blocks * 2;
+
+        printf("System wheel C(%d,%d,%d) %s%s\n",
+               wh->v, wh->k, wh->t, wh->source,
+               wh->is_optimal ? " (optymalny)" : "");
+        printf("  %d kuponow x 2 PLN = %d PLN\n", n_blocks, total);
+        if (wh->t < wh->k) {
+            printf("  Gwarancja: jezeli wsrod Twoich %d liczb znajdzie sie\n"
+                   "  >=%d wylosowanych, masz pewne >=1 trafienie %d-ki.\n\n",
+                   wh->v, wh->t, wh->t);
+        } else {
+            printf("  System pelny (zawiera wszystkie %d-kombinacje).\n\n",
+                   wh->k);
+        }
+
+        printf("Pula %d liczb: ", wh->v);
+        for (int i = 0; i < wh->v; i++) printf("%d%s", best_pool[i], i + 1 < wh->v ? " " : "\n");
+        printf("\n[KUPONY]\n");
+        for (int b = 0; b < n_blocks; b++) {
+            int row[WHEEL_MAX_BLOCK_SIZE];
+            memcpy(row, blocks_out + b * wh->k, sizeof(int) * (size_t)wh->k);
+            qsort(row, (size_t)wh->k, sizeof(int), cmp_int_asc);
+            printf("  Kupon %3d:  ", b + 1);
+            for (int j = 0; j < wh->k; j++) printf("%2d ", row[j]);
+            printf("\n");
+        }
+
+        gui_set_progress(1.0f);
+        gui_set_status("Gotowe (wheel MINI)");
+        return 0;
+    }
 
     int total_cost = 0;
     int steps = max_system - MINI_DRAW_SIZE + 1;
