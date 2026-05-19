@@ -1,0 +1,18 @@
+[Unit]
+Description=Lotto 6/49 — generacja systemow skroconych w dniu losowania (Wt/Cz/Sb)
+After=network.target
+
+[Service]
+Type=oneshot
+User=pi
+Group=pi
+
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile=/etc/lotto.env
+
+ExecStart=/home/pi/Documents/projekt_lotto/systemd/lotto_run_and_mail.sh \
+    lotto-draw \
+    /home/pi/Documents/projekt_lotto/systemd/lotto_play.sh
+
+[Install]
+WantedBy=multi-user.target

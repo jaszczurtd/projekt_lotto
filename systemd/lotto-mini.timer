@@ -1,0 +1,11 @@
+[Unit]
+Description=Mini Lotto — timer (codziennie o 08:00)
+
+[Timer]
+# Codziennie o 08:00. Dostosuj godzine wedlug potrzeb.
+OnCalendar=*-*-* 08:00:00
+# Jezeli maszyna byla wylaczona w zaplanowanym czasie, uruchom po starcie.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

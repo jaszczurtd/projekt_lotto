@@ -1,0 +1,18 @@
+[Unit]
+Description=Mini Lotto — codzienna generacja systemow skroconych (wheels)
+After=network.target
+
+[Service]
+Type=oneshot
+User=pi
+Group=pi
+
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile=/etc/lotto.env
+
+ExecStart=/home/pi/Documents/projekt_lotto/systemd/lotto_run_and_mail.sh \
+    mini-lotto-daily \
+    /home/pi/Documents/projekt_lotto/systemd/mini_lotto_play.sh
+
+[Install]
+WantedBy=multi-user.target

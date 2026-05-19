@@ -1,0 +1,12 @@
+[Unit]
+Description=Lotto 6/49 — timer (wtorek, czwartek, sobota o 08:00)
+
+[Timer]
+# Dni losowania Lotto: wtorek (Tue), czwartek (Thu), sobota (Sat).
+# Uruchamia sie o 08:00 — przed wieczornym losowaniem (~21:40).
+OnCalendar=Tue,Thu,Sat *-*-* 08:00:00
+# Jezeli maszyna byla wylaczona w zaplanowanym czasie, uruchom po starcie.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
