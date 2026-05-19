@@ -19,10 +19,14 @@ LOG_DIR="/tmp"
 LOG_FILE="${LOG_DIR}/lotto_${NAME}.log"
 BODY_FILE="${LOG_DIR}/lotto_${NAME}_body.txt"
 
+# Uruchamiaj zadanie z katalogu projektu, aby pliki wzgledne
+# (np. lotto_key.txt, *_historia.txt) byly odnajdywane poprawnie.
+PROJECT_DIR="$(cd "$(dirname "$SCRIPT")/.." && pwd)"
+
 START_TIME="$(date '+%Y-%m-%d %H:%M:%S')"
 RC=0
 
-bash "$SCRIPT" >"$LOG_FILE" 2>&1 || RC=$?
+(cd "$PROJECT_DIR" && bash "$SCRIPT") >"$LOG_FILE" 2>&1 || RC=$?
 
 FINISHED="$(date '+%Y-%m-%d %H:%M:%S')"
 
