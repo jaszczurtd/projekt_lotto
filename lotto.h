@@ -37,7 +37,7 @@
 #define DRAW_SIZE         6                           // rozmiar jednego losowania Lotto
 #define MINI_MAX_N        42                          // maks. liczba w Mini Lotto 5/42
 #define MINI_DRAW_SIZE    5                           // rozmiar jednego losowania Mini Lotto
-#define DEFAULT_RNG_SEED  20260318u                   // domyślny seed generatora liczb losowych
+#define DEFAULT_RNG_SEED  19771024u                   // domyślny seed generatora liczb losowych
 
 // Endpointy API Lotto
 #define API_BASE       "https://developers.lotto.pl/api/open/v1/lotteries/draw-results/by-date-per-game"
