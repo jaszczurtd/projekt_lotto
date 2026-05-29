@@ -31,3 +31,9 @@ echo "    co najmniej 1 kupon trafi wszystkie 5."
 echo
 "$LOTTO_BIN" play-mini --wheel 7/5/5
 echo
+
+echo "--- Max System 8 ---"
+echo
+"$LOTTO_BIN" play-mini --max-system 8 --proposals 2 --autotune
+echo
+

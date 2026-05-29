@@ -32,3 +32,9 @@ echo "    co najmniej 1 kupon trafi wszystkie 6."
 echo
 "$LOTTO_BIN" play --wheel 8/6/6
 echo
+
+echo "--- max system 8, proposals = 2 ---"
+echo
+"$LOTTO_BIN" play --max-system 8 --proposals 2
+echo
+
